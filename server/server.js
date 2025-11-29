@@ -1,68 +1,64 @@
 const express = require("express");
-const nodemailer = require("nodemailer");
 const cors = require("cors");
-const path = require("path");
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ SERVE REACT BUILD (VERY IMPORTANT)
-app.use(express.static(path.join(__dirname, "../dist")));
-
-// ✅ ROOT ROUTE → LOADS REACT FRONTEND
+// ✅ ROOT CHECK
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../dist/index.html"));
+  res.send("✅ Server running with Resend Email API");
 });
 
-// ✅ HEALTH CHECK (optional, but useful)
-app.get("/health", (req, res) => {
-  res.status(200).send("✅ Server + Frontend running on Render");
-});
-
-// ✅ GMAIL TRANSPORTER (ENV ONLY)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// ✅ CONTACT API
+// ✅ CONTACT API (FREE, NO SMTP)
 app.post("/send", async (req, res) => {
   const { name, email, message } = req.body;
 
   try {
-    const mailOptions = {
-      from: `"${name}" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,
-      subject: `New Message from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
-      replyTo: email,
-    };
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Rabnex <onboarding@resend.dev>",
+        to: ["rabnexinnovation@gmail.com"],
+        subject: `New Message from ${name}`,
+        html: `
+          <h2>New Contact Message</h2>
+          <p><b>Name:</b> ${name}</p>
+          <p><b>Email:</b> ${email}</p>
+          <p><b>Message:</b> ${message}</p>
+        `,
+      }),
+    });
 
-    const autoReply = {
-      from: `"Rabnex Innovations" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Thanks for contacting Rabnex!",
-      text: `Hi ${name},\n\nWe received your message and will reply soon.\n\nRabnex Team`,
-    };
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("❌ Resend Error:", err);
+      return res.status(500).json({ success: false, message: "Email API failed" });
+    }
 
-    await transporter.sendMail(mailOptions);
-    await transporter.sendMail(autoReply);
+    res.status(200).json({
+      success: true,
+      message: "Message sent successfully!",
+    });
 
-    res.status(200).json({ success: true, message: "Message sent successfully" });
   } catch (error) {
-    console.error("❌ Email error:", error.message);
-    res.status(500).json({ success: false, message: "Email failed" });
+    console.error("❌ API Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 
-// ✅ RENDER DYNAMIC PORT (CRITICAL)
+// ✅ RENDER DYNAMIC PORT
 const PORT = process.env.PORT || 4000;
-
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server + Frontend running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
