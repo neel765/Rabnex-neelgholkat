@@ -1,23 +1,27 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ ROOT ROUTE — THIS FIXES “Cannot GET /”
+// ✅ SERVE REACT BUILD (VERY IMPORTANT)
+app.use(express.static(path.join(__dirname, "../dist")));
+
+// ✅ ROOT ROUTE → LOADS REACT FRONTEND
 app.get("/", (req, res) => {
-  res.status(200).send("✅ Server is running correctly on Render");
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
-// ✅ HEALTH CHECK
+// ✅ HEALTH CHECK (optional, but useful)
 app.get("/health", (req, res) => {
-  res.status(200).send("✅ Health check OK");
+  res.status(200).send("✅ Server + Frontend running on Render");
 });
 
-// ✅ Gmail transporter (ENV only)
+// ✅ GMAIL TRANSPORTER (ENV ONLY)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -56,9 +60,9 @@ app.post("/send", async (req, res) => {
   }
 });
 
-// ✅ RENDER PORT (CRITICAL)
+// ✅ RENDER DYNAMIC PORT (CRITICAL)
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server actively running on port ${PORT}`);
+  console.log(`✅ Server + Frontend running on port ${PORT}`);
 });
