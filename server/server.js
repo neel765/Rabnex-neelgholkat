@@ -4,15 +4,20 @@ const cors = require("cors");
 
 const app = express();
 
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
 
-// ✅ SIMPLE HEALTH CHECK (confirms server is running)
-app.get("/health", (req, res) => {
-  res.status(200).send("✅ Server is running on Render");
+// ✅ ROOT ROUTE — THIS FIXES “Cannot GET /”
+app.get("/", (req, res) => {
+  res.status(200).send("✅ Server is running correctly on Render");
 });
 
-// ✅ Gmail transporter (use ENV variables only)
+// ✅ HEALTH CHECK
+app.get("/health", (req, res) => {
+  res.status(200).send("✅ Health check OK");
+});
+
+// ✅ Gmail transporter (ENV only)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -21,7 +26,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ✅ Your /send API
+// ✅ CONTACT API
 app.post("/send", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -51,9 +56,9 @@ app.post("/send", async (req, res) => {
   }
 });
 
-// ✅ MOST IMPORTANT PART — RENDER PORT BINDING
+// ✅ RENDER PORT (CRITICAL)
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server ACTUALLY running on Render on port ${PORT}`);
+  console.log(`✅ Server actively running on port ${PORT}`);
 });
