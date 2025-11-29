@@ -1,23 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ SERVE YOUR REACT BUILD (THIS FIXES YOUR BLANK FRONTEND)
+// ✅ SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "../dist")));
 
-// ✅ ROOT → LOADS YOUR FRONTEND
+// ✅ ROOT → LOAD FRONTEND
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
-// ✅ CONTACT API (RESEND — WORKS ON RENDER FREE)
+// ✅ CONTACT API (RESEND USING BUILT-IN FETCH)
 app.post("/send", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -51,6 +49,7 @@ app.post("/send", async (req, res) => {
       success: true,
       message: "Message sent successfully!",
     });
+
   } catch (error) {
     console.error("❌ API Error:", error.message);
     res.status(500).json({
@@ -60,7 +59,7 @@ app.post("/send", async (req, res) => {
   }
 });
 
-// ✅ FINAL RENDER PORT BINDING
+// ✅ RENDER DYNAMIC PORT
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server + Frontend running on port ${PORT}`);
