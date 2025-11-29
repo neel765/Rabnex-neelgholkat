@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -8,12 +9,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ ROOT CHECK
+// ✅ SERVE YOUR REACT BUILD (THIS FIXES YOUR BLANK FRONTEND)
+app.use(express.static(path.join(__dirname, "../dist")));
+
+// ✅ ROOT → LOADS YOUR FRONTEND
 app.get("/", (req, res) => {
-  res.send("✅ Server running with Resend Email API");
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
-// ✅ CONTACT API (FREE, NO SMTP)
+// ✅ CONTACT API (RESEND — WORKS ON RENDER FREE)
 app.post("/send", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -21,7 +25,7 @@ app.post("/send", async (req, res) => {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -47,7 +51,6 @@ app.post("/send", async (req, res) => {
       success: true,
       message: "Message sent successfully!",
     });
-
   } catch (error) {
     console.error("❌ API Error:", error.message);
     res.status(500).json({
@@ -57,8 +60,8 @@ app.post("/send", async (req, res) => {
   }
 });
 
-// ✅ RENDER DYNAMIC PORT
+// ✅ FINAL RENDER PORT BINDING
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`✅ Server + Frontend running on port ${PORT}`);
 });
