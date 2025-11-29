@@ -13,7 +13,7 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
 
 if (!GMAIL_USER || !GMAIL_PASS) {
-  console.error("❌ ERROR: Missing GMAIL_USER or GMAIL_PASS env variables");
+  console.error("❌ ERROR: Missing GMAIL_USER or GMAIL_PASS environment variables");
 }
 
 // ------------------------------
@@ -23,11 +23,11 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: GMAIL_USER,
-    pass: GMAIL_PASS, // Google App Password (NOT Gmail password)
+    pass: GMAIL_PASS, // Google App Password
   },
 });
 
-// Test connection on startup
+// Verify connection
 transporter.verify()
   .then(() => console.log("✅ Gmail SMTP connected successfully"))
   .catch((err) => console.error("❌ Gmail SMTP connection failed:", err.message));
@@ -48,7 +48,6 @@ app.post("/send", async (req, res) => {
 
   const adminEmail = GMAIL_USER;
 
-  // Email to YOU
   const mailToAdmin = {
     from: `"${name}" <${adminEmail}>`,
     to: adminEmail,
@@ -57,7 +56,6 @@ app.post("/send", async (req, res) => {
     replyTo: email,
   };
 
-  // Auto-reply to customer
   const mailToUser = {
     from: `"Rabnex Innovations" <${adminEmail}>`,
     to: email,
@@ -69,7 +67,7 @@ Thank you for contacting Rabnex Innovations.
 We received your message:
 "${message}"
 
-Our team will get back to you soon.
+We will reply soon.
 
 — Rabnex Team`,
   };
@@ -78,18 +76,10 @@ Our team will get back to you soon.
     await transporter.sendMail(mailToAdmin);
     await transporter.sendMail(mailToUser);
 
-    console.log(`📧 Message received from ${name} <${email}>`);
-
-    res.status(200).json({
-      success: true,
-      message: "Message sent successfully!",
-    });
+    res.status(200).json({ success: true, message: "Message sent successfully!" });
   } catch (error) {
     console.error("❌ Email sending failed:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send message",
-    });
+    res.status(500).json({ success: false, message: "Failed to send message." });
   }
 });
 
@@ -97,4 +87,6 @@ Our team will get back to you soon.
 //  SERVER START
 // ------------------------------
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
