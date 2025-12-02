@@ -17,7 +17,10 @@ const PORT = process.env.PORT || 4000;
 // ---------- TRANSPORTER ----------
 const transporter = nodemailer.createTransport({
   service: "gmail",
-  auth: { user: GMAIL_USER, pass: GMAIL_PASS },
+  auth: {
+    user: "rabnexinnovation@gmail.com", // your Gmail
+    pass: "elvnmahkuaopzjsc", // your Google App Password
+  },
 });
 transporter.verify()
   .then(() => console.log("✅ Gmail SMTP connected"))
