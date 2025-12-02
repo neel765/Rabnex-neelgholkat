@@ -1,8 +1,9 @@
-// server.js - drop-in for Render (no dotenv)
+// server.js (fixed: no '*' pattern crash, /send before catch-all)
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const fs = require("fs");
 
 const app = express();
 app.use(cors());
@@ -22,43 +23,7 @@ transporter.verify()
   .then(() => console.log("✅ Gmail SMTP connected"))
   .catch(err => console.warn("⚠️ Gmail verify failed:", err && err.message));
 
-// ---------- STATIC FRONTEND ----------
-// Adjust `FRONTEND_DIR` if your build is not in 'dist'
-const FRONTEND_DIR = path.join(__dirname, "../dist"); // common for monorepos
-// Fallback: try project root /dist or /build
-const tryDirs = [
-  FRONTEND_DIR,
-  path.join(__dirname, "dist"),
-  path.join(__dirname, "../build"),
-  path.join(__dirname, "build"),
-];
-
-// find the first existing dir
-const fs = require("fs");
-let staticDir = tryDirs.find(d => {
-  try { return fs.existsSync(d) && fs.statSync(d).isDirectory(); } catch (e) { return false; }
-});
-
-if (staticDir) {
-  console.log("✅ Serving static from:", staticDir);
-  app.use(express.static(staticDir));
-  // serve index.html for any non-API route (lets SPA routing work)
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/send")) return next();
-    res.sendFile(path.join(staticDir, "index.html"), err => {
-      if (err) {
-        console.error("❌ Failed to send index.html:", err);
-        res.status(500).send("Server error");
-      }
-    });
-  });
-} else {
-  console.warn("⚠️ No static build found. Static routes disabled. Expected one of:", tryDirs);
-  // Provide a simple root endpoint so Render health checks succeed
-  app.get("/", (req, res) => res.send("Backend running. No static build found."));
-}
-
-// ---------- CONTACT API ----------
+// ---------- CONTACT API (register BEFORE catch-all) ----------
 app.post("/send", async (req, res) => {
   const { name, email, message } = req.body || {};
   if (!name || !email || !message) {
@@ -94,7 +59,40 @@ app.post("/send", async (req, res) => {
   }
 });
 
-// ---------- SIMPLE HEALTH / LOGGING ----------
+// ---------- STATIC FRONTEND ----------
+const tryDirs = [
+  path.join(__dirname, "../dist"),
+  path.join(__dirname, "dist"),
+  path.join(__dirname, "../build"),
+  path.join(__dirname, "build"),
+];
+
+let staticDir = tryDirs.find(d => {
+  try { return fs.existsSync(d) && fs.statSync(d).isDirectory(); } catch (e) { return false; }
+});
+
+if (staticDir) {
+  console.log("✅ Serving static from:", staticDir);
+  app.use(express.static(staticDir));
+
+  // Use a regex fallback instead of '*' (some path-to-regexp versions throw on '*')
+  // Only serve index.html for GET requests that are NOT API routes
+  app.get(/.*/, (req, res, next) => {
+    // If this looks like an API call, skip
+    if (req.path.startsWith("/send") || req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(staticDir, "index.html"), err => {
+      if (err) {
+        console.error("❌ Failed to send index.html:", err);
+        res.status(500).send("Server error");
+      }
+    });
+  });
+} else {
+  console.warn("⚠️ No static build found. Expected one of:", tryDirs);
+  app.get("/", (req, res) => res.send("Backend running. No static build found."));
+}
+
+// ---------- HEALTH ----------
 app.get("/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
 
 // ---------- START ----------
